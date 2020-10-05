@@ -1,0 +1,7 @@
+.idea
+__pycache__
+info.log
+env
+.coverage
+*.ipynb
+.ipynb_checkpoints
