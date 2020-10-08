@@ -10,15 +10,17 @@ class ChatToNetworkTests(unittest.TestCase):
         # Given
         chat = pd.DataFrame(
             {
-                "Time": pd.to_datetime([
-                    "2020-10-05 19:00",
-                    "2020-10-05 19:01",
-                    "2020-10-05 19:02",
-                    "2020-10-05 19:03",
-                    "2020-10-05 19:04",
-                ]),
+                "Time": pd.to_datetime(
+                    [
+                        "2020-10-05 19:00",
+                        "2020-10-05 19:01",
+                        "2020-10-05 19:02",
+                        "2020-10-05 19:03",
+                        "2020-10-05 19:04",
+                    ]
+                ),
                 "User": ["Valen", "Bowen", "Ale", "Bowen", "Ale"],
-                "Message": ["Hola", "Ciao", "Que mais", "Bien and you?", "Muy bieeen"]
+                "Message": ["Hola", "Ciao", "Que mais", "Bien and you?", "Muy bieeen"],
             },
         )
         expected_edges = [
@@ -37,15 +39,17 @@ class ChatToNetworkTests(unittest.TestCase):
         # Given
         chat = pd.DataFrame(
             {
-                "Time": pd.to_datetime([
-                    "2020-10-05 19:00",
-                    "2020-10-05 19:01",
-                    "2020-10-05 19:02",
-                    "2020-10-05 19:03",
-                    "2020-10-05 19:04",
-                ]),
+                "Time": pd.to_datetime(
+                    [
+                        "2020-10-05 19:00",
+                        "2020-10-05 19:01",
+                        "2020-10-05 19:02",
+                        "2020-10-05 19:03",
+                        "2020-10-05 19:04",
+                    ]
+                ),
                 "User": ["Valen", "Bowen", "Ale", "Bowen", "Ale"],
-                "Message": ["Hola", "Ciao", "Que mais", "Bien and you?", "Muy bieeen"]
+                "Message": ["Hola", "Ciao", "Que mais", "Bien and you?", "Muy bieeen"],
             },
         )
         expected_edges = [
@@ -63,15 +67,17 @@ class ChatToNetworkTests(unittest.TestCase):
         # Given
         chat = pd.DataFrame(
             {
-                "Time": pd.to_datetime([
-                    "2020-10-05 19:00",
-                    "2020-10-05 19:01",
-                    "2020-10-05 19:02",
-                    "2020-10-05 19:03",
-                    "2020-10-05 19:04",
-                ]),
+                "Time": pd.to_datetime(
+                    [
+                        "2020-10-05 19:00",
+                        "2020-10-05 19:01",
+                        "2020-10-05 19:02",
+                        "2020-10-05 19:03",
+                        "2020-10-05 19:04",
+                    ]
+                ),
                 "User": ["Valen", "Bowen", "Ale", "Bowen", "Ale"],
-                "Message": ["Hola", "Ciao", "Que mais", "Bien and you?", "Muy bieeen"]
+                "Message": ["Hola", "Ciao", "Que mais", "Bien and you?", "Muy bieeen"],
             },
         )
         expected_edges = [
@@ -89,16 +95,25 @@ class ChatToNetworkTests(unittest.TestCase):
         # Given
         chat = pd.DataFrame(
             {
-                "Time": pd.to_datetime([
-                    "2020-10-05 19:00",
-                    "2020-10-05 19:01",
-                    "2020-10-05 19:02",
-                    "2020-10-05 19:03",
-                    "2020-10-05 19:04",
-                    "2020-10-05 19:05",
-                ]),
+                "Time": pd.to_datetime(
+                    [
+                        "2020-10-05 19:00",
+                        "2020-10-05 19:01",
+                        "2020-10-05 19:02",
+                        "2020-10-05 19:03",
+                        "2020-10-05 19:04",
+                        "2020-10-05 19:05",
+                    ]
+                ),
                 "User": ["Valen", "Bowen", "Ale", "Bowen", "Ale", "Valen"],
-                "Message": ["Hola", "Ciao", "Que mais", "Bien and you?", "Muy bieeen", "De lujo amiga"]
+                "Message": [
+                    "Hola",
+                    "Ciao",
+                    "Que mais",
+                    "Bien and you?",
+                    "Muy bieeen",
+                    "De lujo amiga",
+                ],
             },
         )
         expected_edges = [
