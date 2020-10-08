@@ -17,7 +17,9 @@ def chat_to_multi_directed_network(chat):
 
 def chat_to_directed_network(chat, weight_normalization=False):
     directed_edges = chat_to_directed_edges(chat)
-    directed_edges_weighted = directed_edges_to_weighted(directed_edges, normalization=weight_normalization)
+    directed_edges_weighted = directed_edges_to_weighted(
+        directed_edges, normalization=weight_normalization
+    )
 
     return nx.from_pandas_edgelist(
         directed_edges_weighted,
@@ -29,22 +31,27 @@ def chat_to_directed_network(chat, weight_normalization=False):
 
 
 def chat_to_directed_edges(chat):
-    return pd.concat(
-        [
-            chat["Time"],
-            chat["User"].rename("Source"),
-            chat["User"].shift(1).rename("Target")
-        ],
-        axis="columns"
-    ).dropna(axis="index").reset_index(drop=False)
+    return (
+        pd.concat(
+            [
+                chat["Time"],
+                chat["User"].rename("Source"),
+                chat["User"].shift(1).rename("Target"),
+            ],
+            axis="columns",
+        )
+        .dropna(axis="index")
+        .reset_index(drop=False)
+    )
 
 
 def directed_edges_to_weighted(directed_edges, normalization=None):
-    directed_edges_weighted = (directed_edges
-                               .groupby(["Source", "Target"])["index"]
-                               .count()
-                               .rename("weight")
-                               .reset_index())
+    directed_edges_weighted = (
+        directed_edges.groupby(["Source", "Target"])["index"]
+        .count()
+        .rename("weight")
+        .reset_index()
+    )
 
     if not normalization:
         return directed_edges_weighted
