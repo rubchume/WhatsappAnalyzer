@@ -8,6 +8,9 @@ authors = ["Rubén <chanantero@hotmail.com>"]
 python = "^3.7"
 pandas = "^1.1.2"
 networkx = "^2.5"
+chart-studio = "^1.1.0"
+plotly = "^4.11.0"
+scipy = "^1.5.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.1.1"

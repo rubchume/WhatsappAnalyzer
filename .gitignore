@@ -5,3 +5,4 @@ env
 .coverage
 *.ipynb
 .ipynb_checkpoints
+.nox
