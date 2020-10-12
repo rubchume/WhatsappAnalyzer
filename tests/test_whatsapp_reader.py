@@ -12,6 +12,7 @@ class WhatsappReaderTests(unittest.TestCase):
     WHATSAPP_EXPORT_SPLIT_LINES_WITH_BAR_NAME = "tests/helpers/ChatExampleSplitLinesWithBar.txt"
     WHATSAPP_EXPORT_CONTIGUOUS_SAME_USER_MESSAGES = "tests/helpers/ChatExampleContiguousMessages.txt"
     WHATSAPP_EXPORT_LOCATION = "tests/helpers/ChatExampleLocation.txt"
+    WHATSAPP_EXPORT_ONE_DIGIT_HOUR = "tests/helpers/ChatExampleOneDigitHour.txt"
 
     def test_read_whatsapp_expport_and_return_dataframe(self):
         # Given
@@ -142,5 +143,24 @@ class WhatsappReaderTests(unittest.TestCase):
         )
         # When
         chat = whatsapp.read_chat(self.WHATSAPP_EXPORT_LOCATION)
+        # Then
+        assert_frame_equal(expected_chat, chat)
+
+    def test_parse_hours_with_one_digit(self):
+        # Given
+        expected_chat = pd.DataFrame(
+            {
+                "Time": [
+                    pd.to_datetime("2020-05-10 5:44"),
+                    pd.to_datetime("2020-05-10 15:44"),
+                    pd.to_datetime("2020-05-10 15:49"),
+                ],
+                "User": ["Rubén", "Bowen", "Valen"],
+                "Message": ["¿Hey qué tal?", "Bieenn, y tu", "¿Cómo estáis?"],
+            },
+            index=[1, 2, 3],
+        )
+        # When
+        chat = whatsapp.read_chat(self.WHATSAPP_EXPORT_ONE_DIGIT_HOUR)
         # Then
         assert_frame_equal(expected_chat, chat)
