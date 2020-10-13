@@ -1,12 +1,12 @@
 import unittest
 
 import pandas as pd
-from pandas._testing import assert_frame_equal, assert_series_equal
+from pandas._testing import assert_series_equal
 
-from src import network
+from src.chat_network import ChatNetwork
 
 
-class ChatToNetworkTests(unittest.TestCase):
+class ChatNetworkTests(unittest.TestCase):
     def test_create_multi_directed_graph_from_chat(self):
         # Given
         chat = pd.DataFrame(
@@ -31,7 +31,9 @@ class ChatToNetworkTests(unittest.TestCase):
             ("Ale", "Bowen", 4, pd.to_datetime("2020-10-05 19:04")),
         ]
         # When
-        g = network.chat_to_multi_directed_network(chat)
+        chat_network = ChatNetwork()
+        chat_network.chat = chat
+        g = chat_network.get_multi_directed_graph()
         # Then
         self.assertEqual({"Valen", "Bowen", "Ale"}, set(g.nodes()))
         self.assertEqual(expected_edges, list(g.edges(data="Time", keys=True)))
@@ -53,13 +55,15 @@ class ChatToNetworkTests(unittest.TestCase):
                 "Message": ["Hola", "Ciao", "Que mais", "Bien and you?", "Muy bieeen"],
             },
         )
+        network_chat = ChatNetwork()
+        network_chat.chat = chat
         expected_edges = [
             ("Ale", "Bowen", 2),
             ("Bowen", "Ale", 1),
             ("Bowen", "Valen", 1),
         ]
         # When
-        g = network.chat_to_directed_network(chat, weight_normalization=False)
+        g = network_chat.get_directed_graph(weight_normalization="count")
         # Then
         self.assertEqual({"Valen", "Bowen", "Ale"}, set(g.nodes()))
         self.assertEqual(expected_edges, list(g.edges(data="weight")))
@@ -81,13 +85,15 @@ class ChatToNetworkTests(unittest.TestCase):
                 "Message": ["Hola", "Ciao", "Que mais", "Bien and you?", "Muy bieeen"],
             },
         )
+        network_chat = ChatNetwork()
+        network_chat.chat = chat
         expected_edges = [
             ("Ale", "Bowen", 1),
             ("Bowen", "Ale", 0.5),
             ("Bowen", "Valen", 0.5),
         ]
         # When
-        g = network.chat_to_directed_network(chat, weight_normalization="out_edges")
+        g = network_chat.get_directed_graph(weight_normalization="out_edges")
         # Then
         self.assertEqual({"Valen", "Bowen", "Ale"}, set(g.nodes()))
         self.assertEqual(expected_edges, list(g.edges(data="weight")))
@@ -117,6 +123,8 @@ class ChatToNetworkTests(unittest.TestCase):
                 ],
             },
         )
+        network_chat = ChatNetwork()
+        network_chat.chat = chat
         expected_edges = [
             ("Ale", "Bowen", 1),
             ("Bowen", "Ale", 0.5),
@@ -124,7 +132,7 @@ class ChatToNetworkTests(unittest.TestCase):
             ("Valen", "Ale", 0.5),
         ]
         # When
-        g = network.chat_to_directed_network(chat, weight_normalization="in_edges")
+        g = network_chat.get_directed_graph(weight_normalization="in_edges")
         # Then
         self.assertEqual({"Valen", "Bowen", "Ale"}, set(g.nodes()))
         self.assertEqual(expected_edges, list(g.edges(data="weight")))
@@ -155,7 +163,9 @@ class ChatToNetworkTests(unittest.TestCase):
             },
         )
         # When
-        network.chat_to_directed_network(chat, weight_normalization="expected_directed_edges")
+        network_chat = ChatNetwork()
+        network_chat.chat = chat
+        network_chat.get_directed_graph(weight_normalization="expected_directed_edges")
 
     def test_get_expected_directed_edges(self):
         # Given
@@ -171,28 +181,13 @@ class ChatToNetworkTests(unittest.TestCase):
             name="weight"
         )
         # When
-        expected_directed_edges = network.get_expected_directed_edges(directed_edges)
+        expected_directed_edges = ChatNetwork.get_expected_directed_edges(directed_edges)
         # Then
         assert_series_equal(expected_expected_directed_edges, expected_directed_edges)
 
-    def test_directed_edges_weighted_to_undirected(self):
+    def test_draw_network_does_not_fail(self):
         # Given
-        directed_edges = pd.DataFrame(
-            {
-                "Source": ["Pedro", "Joanna", "Pedro"],
-                "Target": ["Joanna", "Pedro", "Josep"],
-                "weight": [1, 2, 3],
-            },
-            index=["edge1", "edge2", "edge3"]
-        )
-        expected_undirected_edges = pd.DataFrame(
-            {
-                "Source": ["Pedro", "Pedro"],
-                "Target": ["Joanna", "Josep"],
-                "weight": [1.5, 1.5]
-            },
-        )
+        chat_file = "data/ChatMena.txt"
+        network_chat = ChatNetwork(chat_file)
         # When
-        undirected_edges = network.directed_edges_to_undirected(directed_edges)
-        # Then
-        assert_frame_equal(expected_undirected_edges, undirected_edges)
+        network_chat.draw()
