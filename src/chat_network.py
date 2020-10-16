@@ -1,3 +1,7 @@
+import itertools
+
+import matplotlib as mpl
+import matplotlib.cm as cm
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -9,15 +13,20 @@ from src import whatsapp
 
 
 class ChatNetwork(object):
+    NORMALIZATION_TYPE_DEVIATION = "MLE_multinomial_distribution_difference_in_standard_deviations"
+    NORMALIZATION_TYPE_CDF = "MLE_multinomial_distribution_CDF"
+
     def __init__(self, whatsapp_export_file=None):
         self.chat = whatsapp.read_chat(whatsapp_export_file) if whatsapp_export_file else None
 
     def draw(self, layout=nx.drawing.circular_layout):
         node_positions = self.node_positions(layout)
         num_nodes = len(node_positions)
-        edges = self.get_directed_edges(weight_normalization="expected_directed_edges").reset_index()
+        edges = self.get_directed_edges(
+            CDF=self.NORMALIZATION_TYPE_CDF, deviations=self.NORMALIZATION_TYPE_DEVIATION
+        ).reset_index()
         node_sizes = pd.Series([
-            edges.loc[(edges["Source"] == node) | (edges["Target"] == node), "weight"].sum() / (num_nodes - 1)
+            edges.loc[(edges["Source"] == node) | (edges["Target"] == node), "CDF"].sum() / (num_nodes - 1)
             for node in node_positions.index
         ], index=node_positions.index)
 
@@ -39,7 +48,7 @@ class ChatNetwork(object):
                 scaleratio=1
             ),
             showlegend=True,
-            plot_bgcolor='rgba(0,0,0,0)'
+            plot_bgcolor='rgba(128,128,128,1)'
         )
         return layout_plotly
 
@@ -70,7 +79,7 @@ class ChatNetwork(object):
 
     @classmethod
     def get_edge_traces(cls, node_positions, edges):
-        def node_positions_to_edge_node_positions():
+        def node_positions_to_edge_node_positions(edges):
             edge_source_positions = (node_positions
                                      .loc[edges["Source"]]
                                      .reset_index()
@@ -87,27 +96,83 @@ class ChatNetwork(object):
 
             return pd.concat([edge_source_positions, edge_target_positions], axis="columns")
 
-        edge_node_positions = node_positions_to_edge_node_positions()
-        lines_width = edges["weight"] * 20
-        alphas = edges["weight"] / edges["weight"].max() * 0.8
+        def get_edge_segment_traces(
+            x_source,
+            y_source,
+            x_target,
+            y_target,
+            weight_source_to_target,
+            weight_target_to_source,
+            text=None,
+        ):
+            normalizer = mpl.colors.Normalize(vmin=0, vmax=1)
+            mappable = mpl.cm.ScalarMappable(norm=normalizer, cmap=cm.bwr)
 
-        edge_traces = [go.Scatter(
-            x=[x_source, x_target],
-            y=[y_source, y_target],
-            name=f"{source} -> {target}",
-            mode='lines',
-            line={
-                "color": f'rgba(25,25,112,{alpha})',
-                "width": width,
-            }
-            ,
-            text=f"{source} -> {target}",
-            hoverinfo='none',
-            showlegend=False,
-        ) for edge, (source, x_source, y_source, target, x_target, y_target, width, alpha)
-            in pd.concat([edge_node_positions, lines_width, alphas], axis="columns").iterrows()]
+            num_segments = 40
 
-        return edge_traces
+            x_joints = np.linspace(x_source, x_target, num_segments + 1)
+            y_joints = np.linspace(y_source, y_target, num_segments + 1)
+            weight_joints = np.linspace(weight_source_to_target, weight_target_to_source, num_segments)
+
+            return [go.Scatter(
+                x=[x_origin, x_destination],
+                y=[y_origin, y_destination],
+                line={
+                    "color": f"rgba{mappable.to_rgba(weight, bytes=True)}",
+                    "width": 10,
+                },
+                mode="lines",
+                showlegend=False,
+                hovertext=text,
+                hoverinfo="text",
+            ) for x_origin, x_destination, y_origin, y_destination, weight in zip(
+                x_joints[:-1],
+                x_joints[1:],
+                y_joints[:-1],
+                y_joints[1:],
+                weight_joints)]
+
+        united_edges = cls.unite_symmetric_directed_edges(edges)
+        edge_node_positions = node_positions_to_edge_node_positions(united_edges)
+
+        edge_traces = [
+            get_edge_segment_traces(
+                x_source,
+                y_source,
+                x_target,
+                y_target,
+                CDF_source_to_target,
+                CDF_target_to_source,
+                text=(f"{source} -> {target}. Deviated {deviations_source_to_target:.2f} $\\sigma$ <br>"
+                      f"{target} -> {source}. Deviated {deviations_target_to_source:.2f} $\\sigma$")
+            )
+            for edge_id, (
+                source,
+                x_source,
+                y_source,
+                target,
+                x_target,
+                y_target,
+                CDF_source_to_target,
+                CDF_target_to_source,
+                deviations_source_to_target,
+                deviations_target_to_source,
+            )
+            in pd.concat(
+                [
+                    edge_node_positions,
+                    united_edges[[
+                        "CDF_Source_to_Target",
+                        "CDF_Target_to_Source",
+                        "deviations_Source_to_Target",
+                        "deviations_Target_to_Source"
+                    ]]
+                ],
+                axis="columns"
+            ).iterrows()
+        ]
+
+        return list(itertools.chain(*edge_traces))
 
     def get_directed_graph(self, weight_normalization="no_normalization"):
         directed_edges_weighted = self.get_directed_edges(weight_normalization)
@@ -132,7 +197,7 @@ class ChatNetwork(object):
             create_using=nx.MultiDiGraph,
         )
 
-    def get_directed_edges(self, weight_normalization="no_normalization"):
+    def get_directed_edges(self, weight_normalization="no_normalization", **kwargs):
         multi_directed_edges = (
             pd.concat(
                 [
@@ -146,36 +211,56 @@ class ChatNetwork(object):
             .reset_index(drop=False)
         )
 
-        if weight_normalization == "no_normalization":
+        kwargs_present = bool(kwargs)
+
+        if weight_normalization == "no_normalization" and not kwargs_present:
             return multi_directed_edges
 
         return self.directed_edges_to_weighted(
-            multi_directed_edges, normalization=weight_normalization
+            multi_directed_edges, normalization=weight_normalization, **kwargs
         )
 
     @classmethod
-    def directed_edges_to_weighted(cls, directed_edges, normalization="count"):
+    def directed_edges_to_weighted(cls, directed_edges, normalization="count", **kwargs):
         directed_edges_count = (
             directed_edges.groupby(["Source", "Target"])["index"]
             .count()
-            .rename("weight")
         )
 
-        if normalization == "count":
-            return directed_edges_count
+        normalization_columns = kwargs if kwargs else {"weight": normalization}
 
-        if normalization == "expected_directed_edges":
-            expected_directed_edges = cls.get_expected_directed_edges(directed_edges)
-            deviations = cls.standard_deviations_from_expected_value(directed_edges_count, expected_directed_edges)
-            return pd.Series(norm.cdf(deviations), index=deviations.index, name="weight")
+        weighted_edges = []
+        for column_name, normalization_type in normalization_columns.items():
+            if normalization_type == "count":
+                weight = directed_edges_count.rename(column_name)
 
-        normalization_fields = {"out_edges": "Source", "in_edges": "Target"}
-        group_field = normalization_fields[normalization]
-        return (
-            directed_edges_count
-            .groupby(level=group_field)
-            .transform(lambda group: group / group.sum())
-        )
+            elif (
+                    normalization_type == "MLE_multinomial_distribution_CDF"
+                    or normalization_type == "MLE_multinomial_distribution_difference_in_standard_deviations"
+            ):
+                expected_directed_edges = cls.get_expected_directed_edges(directed_edges)
+                deviations = cls.standard_deviations_from_expected_value(directed_edges_count, expected_directed_edges)
+                if normalization_type == "MLE_multinomial_distribution_difference_in_standard_deviations":
+                    weight = deviations.rename(column_name)
+                else:
+                    weight = pd.Series(norm.cdf(deviations), index=deviations.index, name=column_name)
+
+            elif normalization_type in ("out_edges", "in_edges"):
+                normalization_fields = {"out_edges": "Source", "in_edges": "Target"}
+                group_field = normalization_fields[normalization_type]
+                weight = (
+                    directed_edges_count
+                    .groupby(level=group_field)
+                    .transform(lambda group: group / group.sum())
+                    .rename(column_name)
+                )
+
+            else:
+                raise ValueError("Unknown normalization type")
+
+            weighted_edges.append(weight)
+
+        return pd.concat(weighted_edges, axis="columns")
 
     @classmethod
     def get_expected_directed_edges(cls, directed_edges):
@@ -219,3 +304,28 @@ class ChatNetwork(object):
         std_binomial = np.sqrt(variance_binomial)
         deviation = ((directed_edges_weighted - expected_directed_edges) / std_binomial).dropna()
         return deviation
+
+    @classmethod
+    def unite_symmetric_directed_edges(cls, directed_edges):
+        def unite_edges_subgroup(group):
+            nodeA = group["Source"].iloc[0]
+            nodeB = group["Target"].iloc[0]
+
+            weight_columns = group.columns.difference(["Source", "Target"])
+            A_to_B_weights = (
+                group
+                .loc[group["Source"] == nodeA, weight_columns]
+                .sum()
+                .rename(index=lambda name: f"{name}_Source_to_Target")
+            )
+            B_to_A_weights = (
+                group
+                .loc[group["Source"] == nodeB, weight_columns]
+                .sum()
+                .rename(index=lambda name: f"{name}_Target_to_Source")
+            )
+
+            return pd.concat([group[["Source", "Target"]].iloc[0], A_to_B_weights, B_to_A_weights], axis="index")
+
+        pair_id = directed_edges[["Source", "Target"]].apply(lambda row: row.sort_values(ascending=True).str.cat(), axis="columns")
+        return directed_edges.groupby(pair_id).apply(unite_edges_subgroup)

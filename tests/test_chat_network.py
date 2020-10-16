@@ -1,7 +1,7 @@
 import unittest
 
 import pandas as pd
-from pandas._testing import assert_series_equal
+from pandas._testing import assert_frame_equal, assert_series_equal
 
 from src.chat_network import ChatNetwork
 
@@ -165,7 +165,7 @@ class ChatNetworkTests(unittest.TestCase):
         # When
         network_chat = ChatNetwork()
         network_chat.chat = chat
-        network_chat.get_directed_graph(weight_normalization="expected_directed_edges")
+        network_chat.get_directed_graph(weight_normalization="MLE_multinomial_distribution_CDF")
 
     def test_get_expected_directed_edges(self):
         # Given
@@ -191,3 +191,84 @@ class ChatNetworkTests(unittest.TestCase):
         network_chat = ChatNetwork(chat_file)
         # When
         network_chat.draw()
+
+    def test_unite_symmetric_edges(self):
+        # Given
+        directed_edges = pd.DataFrame(
+            {
+                "Source": ["Valen", "Ale", "Dani"],
+                "Target": ["Ale", "Dani", "Ale"],
+                "weight": [1, 2, 3]
+            }
+        )
+        expected_united_edges = pd.DataFrame(
+            {
+                "Source": ["Ale", "Valen"],
+                "Target": ["Dani", "Ale"],
+                "weight_Source_to_Target": [2, 1],
+                "weight_Target_to_Source": [3, 0]
+            },
+            index=["AleDani", "AleValen"]
+        )
+        # When
+        united_edges = ChatNetwork.unite_symmetric_directed_edges(directed_edges)
+        # Then
+        assert_frame_equal(expected_united_edges, united_edges)
+
+    def test_get_directed_edges_with_kwargs(self):
+        # Given
+        chat = pd.DataFrame(
+            {
+                "Time": pd.to_datetime(
+                    [
+                        "2020-10-05 19:00",
+                        "2020-10-05 19:01",
+                        "2020-10-05 19:02",
+                        "2020-10-05 19:03",
+                        "2020-10-05 19:04",
+                    ]
+                ),
+                "User": ["Valen", "Bowen", "Ale", "Bowen", "Ale"],
+                "Message": ["Hola", "Ciao", "Que mais", "Bien and you?", "Muy bieeen"],
+            },
+        )
+        expected_edges = pd.DataFrame(
+            {
+                "Cuantos": [2, 1, 1],
+                "PorcentajeRecibidos": [1, 1, 1],
+                "PorcentajeEnviados": [1, 0.5, 0.5],
+            },
+            index=pd.MultiIndex.from_tuples([("Ale", "Bowen"), ("Bowen", "Ale"), ("Bowen", "Valen")], names=["Source", "Target"])
+        )
+        chat_network = ChatNetwork()
+        chat_network.chat = chat
+        # When
+        edges = chat_network.get_directed_edges(Cuantos="count", PorcentajeRecibidos="in_edges", PorcentajeEnviados="out_edges")
+        # Then
+        assert_frame_equal(expected_edges, edges)
+
+    def test_get_directed_edges_with_unknown_normalization_raises_error(self):
+        # Given
+        chat = pd.DataFrame(
+            {
+                "Time": pd.to_datetime(
+                    [
+                        "2020-10-05 19:00",
+                        "2020-10-05 19:01",
+                        "2020-10-05 19:02",
+                        "2020-10-05 19:03",
+                        "2020-10-05 19:04",
+                    ]
+                ),
+                "User": ["Valen", "Bowen", "Ale", "Bowen", "Ale"],
+                "Message": ["Hola", "Ciao", "Que mais", "Bien and you?", "Muy bieeen"],
+            },
+        )
+        chat_network = ChatNetwork()
+        chat_network.chat = chat
+        # Then
+        self.assertRaises(
+            ValueError,
+            chat_network.get_directed_edges,
+            weight_normalization="unknown_normalization"
+        )
