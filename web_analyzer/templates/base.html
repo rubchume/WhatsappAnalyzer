@@ -1,0 +1,30 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <link rel="stylesheet" href="{% static 'css/general_style.css' %}">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <title>{{title}}</title>
+</head>
+
+<body>
+
+<header>
+    <h1>Whatsapp Analyzer</h1>
+
+    <nav>
+        <ul>
+            <li><a href="{% url 'upload_chat' %}">Upload Whatsapp Chat</a></li>
+        </ul>
+    </nav>
+</header>
+
+{% block content %}{% endblock %}
+
+</body>
+
+</html>

@@ -6,3 +6,5 @@ env
 *.ipynb
 .ipynb_checkpoints
 .nox
+debug.log
+static/css
