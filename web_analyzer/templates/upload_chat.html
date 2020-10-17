@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Upload Whatsapp Group Chat Export File</h1>
+
+<form action="" method="post" enctype="multipart/form-data">{% csrf_token %}
+    <table>
+        {{form.as_table}}
+    </table>
+    <input class="button" type="submit" value="Update Chat"/>
+</form>
+
+{% endblock %}
