@@ -7,6 +7,8 @@ from src.chat_network import ChatNetwork
 
 
 class ChatNetworkTests(unittest.TestCase):
+    WHATSAPP_EXPORT_NAME = "tests/helpers/ChatExample.txt"
+
     def test_create_multi_directed_graph_from_chat(self):
         # Given
         chat = pd.DataFrame(
@@ -272,3 +274,31 @@ class ChatNetworkTests(unittest.TestCase):
             chat_network.get_directed_edges,
             weight_normalization="unknown_normalization"
         )
+
+    def test_get_directed_edges_does_not_fail_when_estimated_variance_is_0(self):
+        # Given
+        chat = pd.DataFrame(
+            {
+                "Time": pd.to_datetime(
+                    [
+                        "2020-10-05 19:02",
+                        "2020-10-05 19:03",
+                        "2020-10-05 19:04",
+                    ]
+                ),
+                "User": ["Valen", "Bowen", "Ale"],
+                "Message": ["Hola", "Ciao", "Que mais"],
+            },
+        )
+        expected_edges = pd.DataFrame(
+            {
+                "weight": [0.0],
+            },
+            index=pd.MultiIndex.from_tuples([("Bowen", "Valen")], names=["Source", "Target"])
+        )
+        chat_network = ChatNetwork()
+        chat_network.chat = chat
+        # When
+        edges = chat_network.get_directed_edges(weight_normalization=ChatNetwork.NORMALIZATION_TYPE_DEVIATION)
+        # Then
+        assert_frame_equal(expected_edges, edges)

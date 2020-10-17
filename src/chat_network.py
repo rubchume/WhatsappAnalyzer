@@ -301,7 +301,7 @@ class ChatNetwork(object):
         probability_source = expected_directed_edges.groupby("Target").transform(lambda group: group / group.sum())
         num_messages_to_target = expected_directed_edges.groupby("Target").transform(lambda group: group.sum())
         variance_binomial = probability_source * (1 - probability_source) * num_messages_to_target
-        std_binomial = np.sqrt(variance_binomial)
+        std_binomial = np.sqrt(variance_binomial).replace(0, 0.001)
         deviation = ((directed_edges_weighted - expected_directed_edges) / std_binomial).dropna()
         return deviation
 
