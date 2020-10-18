@@ -7,4 +7,4 @@ env
 .ipynb_checkpoints
 .nox
 debug.log
-static/css
+local_settings.py

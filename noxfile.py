@@ -18,7 +18,7 @@ import nox
 # install_with_constraints(session, "safety") and its equivalent with the lint packages
 
 
-nox.options.sessions = "lint_CI", "safety", "tests"
+nox.options.sessions = "tests", "lint_CI", "safety"
 lint_locations = "tests", "src",
 
 

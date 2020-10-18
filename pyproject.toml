@@ -14,6 +14,13 @@ scipy = "^1.5.2"
 django = "^3.1.2"
 django-sass = "^1.0.0"
 djangorestframework = "^3.12.1"
+matplotlib = "^3.3.2"
+# For Heroku deployment
+dj-database-url = "^0.5.0"
+gunicorn = "^20.0.4"
+whitenoise = "^5.2.0"
+psycopg2 = "^2.8.6"
+django-heroku = "^0.3.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.1.1"
@@ -27,7 +34,6 @@ flake8-import-order = "^0.18.1"
 safety = "^1.9.0"
 pytest-cov = "^2.10.1"
 jupyterlab = "^2.2.8"
-matplotlib = "^3.3.2"
 
 [build-system]
 requires = ["poetry>=0.12"]
