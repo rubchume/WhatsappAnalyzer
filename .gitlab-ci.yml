@@ -1,10 +1,25 @@
 image: python:3
 stages:
   - test
+  - deploy
 
 Test:
   stage: test
   script:
     - pip3 install poetry
+    - apt-get update -yq
+    - apt-get install -yq python3-dev
     - pip3 install nox==2020.5.24
     - nox
+
+Staging:
+  stage: deploy
+  script:
+    - apt-get update -qy
+    - apt-get install -y ruby-dev
+    - gem install dpl
+    - pip3 install poetry
+    - poetry export --format=requirements.txt --output=$CI_PROJECT_DIR/requirements.txt
+    - dpl --provider=heroku --app=$HEROKU_APP_STAGING --api-key=$HEROKU_API_KEY --skip-cleanup
+  only:
+    - master
