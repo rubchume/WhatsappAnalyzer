@@ -60,4 +60,4 @@ class ChatStatisticsView(TemplateView):
         chat_network = ChatNetwork(chat_export_path)
         fig = chat_network.draw()
         fig.update_layout(height=800)
-        return plot(fig, output_type='div')
+        return plot(fig, output_type='div', include_plotlyjs=False)
