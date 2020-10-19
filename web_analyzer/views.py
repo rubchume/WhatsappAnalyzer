@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import FormView, TemplateView
 from plotly.offline import plot
@@ -10,6 +11,27 @@ from web_analyzer.forms import UploadChatForm
 
 
 CHAT_EXPORTS_DIRECTORY = "data"
+SESSION_CHAT_FIELD = "chat_file_name"
+
+
+class RedirectBasedOnRegisteredSessionMixin(object):
+    def dispatch(self, request, *args, **kwargs):
+        if request.session.get(SESSION_CHAT_FIELD, None):
+            return redirect(
+                reverse_lazy(
+                    "chat_statistics",
+                )
+            )
+        else:
+            return redirect(
+                reverse_lazy(
+                    "upload_chat",
+                )
+            )
+
+
+class HomeView(RedirectBasedOnRegisteredSessionMixin, TemplateView):
+    template_name = "upload_chat.html"
 
 
 class UploadChatView(FormView):
@@ -22,7 +44,7 @@ class UploadChatView(FormView):
         self.remove_old_chat_export()
 
         chat_export = form.files["chat_file"]
-        self.request.session["chat_file_name"] = chat_export.name
+        self.request.session[SESSION_CHAT_FIELD] = chat_export.name
 
         self.save_chat_export(chat_export)
 
@@ -36,7 +58,7 @@ class UploadChatView(FormView):
                 destination.write(chunk)
 
     def remove_old_chat_export(self):
-        old_chat_export_file_name = self.request.session.get("chat_file_name", None)
+        old_chat_export_file_name = self.request.session.get(SESSION_CHAT_FIELD, None)
         if old_chat_export_file_name:
             old_chat_export_file_path = Path(os.path.join(CHAT_EXPORTS_DIRECTORY, old_chat_export_file_name))
             if old_chat_export_file_path.is_file():
@@ -49,7 +71,7 @@ class ChatStatisticsView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        chat_export_file_name = self.request.session["chat_file_name"]
+        chat_export_file_name = self.request.session[SESSION_CHAT_FIELD]
         context["chat_file_name"] = chat_export_file_name
         context["graph"] = self.get_graphs(chat_export_file_name)
         return context

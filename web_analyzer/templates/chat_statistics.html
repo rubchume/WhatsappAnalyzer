@@ -1,5 +1,12 @@
 {% extends 'base.html' %}
 
+{% block header_nav %}
+<ul>
+    <li><a href="{% url 'upload_chat' %}">Upload Whatsapp Chat</a></li>
+</ul>
+{% endblock %}
+
+
 {% block content %}
 <h1>Chat Statistics</h1>
 <h2>{{chat_file_name}}</h2>
@@ -7,5 +14,4 @@
 {% autoescape off %}
   {{graph}}
 {% endautoescape %}
-
 {% endblock %}

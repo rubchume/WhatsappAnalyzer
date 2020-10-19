@@ -21,12 +21,11 @@ class ChatNetwork(object):
 
     def draw(self, layout=nx.drawing.circular_layout):
         node_positions = self.node_positions(layout)
-        num_nodes = len(node_positions)
         edges = self.get_directed_edges(
-            CDF=self.NORMALIZATION_TYPE_CDF, deviations=self.NORMALIZATION_TYPE_DEVIATION
+            count="count", CDF=self.NORMALIZATION_TYPE_CDF, deviations=self.NORMALIZATION_TYPE_DEVIATION
         ).reset_index()
         node_sizes = pd.Series([
-            edges.loc[(edges["Source"] == node) | (edges["Target"] == node), "CDF"].sum() / (num_nodes - 1)
+            edges.loc[edges["Target"] == node, "count"].sum()
             for node in node_positions.index
         ], index=node_positions.index)
 
@@ -61,20 +60,29 @@ class ChatNetwork(object):
 
     @classmethod
     def get_node_traces(cls, node_positions, size_magnitude):
+        size_magnitude_normalized = size_magnitude / size_magnitude.sum()
+        radius = node_positions.apply(lambda g: np.linalg.norm(g), axis="columns").mean()
+        circumference = radius * 2 * np.pi
+        arc_longitude = circumference / len(size_magnitude)
+        scale_factor = arc_longitude / 2 * np.sqrt(np.pi / size_magnitude_normalized.max())
         node_traces = [go.Scatter(
             x=(x,),
             y=(y,),
             mode='markers+text',
-            name=f"{node} ({num})",
+            name=f"{node} ({num*100:.2f}%)",
             marker={
                 "symbol": 'circle',
-                "size": np.sqrt(num) * 60,
+                "size": np.sqrt(num) * scale_factor * 150,
                 "opacity": 1,
             },
             text=node,
             textposition="middle center",
             hoverinfo="text",
-        ) for node, (x, y, num) in pd.concat([node_positions, size_magnitude], axis="columns").iterrows()]
+            textfont={
+                "color": "white",
+                "family": "Arial, sans-serif"
+            }
+        ) for node, (x, y, num) in pd.concat([node_positions, size_magnitude_normalized], axis="columns").iterrows()]
         return node_traces
 
     @classmethod
