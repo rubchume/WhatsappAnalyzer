@@ -32,7 +32,7 @@ def lines_to_messages(chat_lines):
 
 
 def messages_to_components(chat_messages):
-    time_regex = r"\d{1,2}/\d{1,2}/\d{1,2} \d{1,2}:\d{2}"
+    time_regex = r"\d{1,4}/\d{1,2}/\d{1,2} \d{1,2}:\d{2}"
     user_regex = r".*"
     message_regex = r".*"
     regex = fr"^(?P<Time>{time_regex}) - (?P<User>{user_regex}?): (?P<Message>{message_regex})$"
