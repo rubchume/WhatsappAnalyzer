@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -8,6 +9,9 @@ from plotly.offline import plot
 
 from src.chat_network import ChatNetwork
 from web_analyzer.forms import UploadChatForm
+
+
+logger = logging.getLogger("general")
 
 
 CHAT_EXPORTS_DIRECTORY = "data"
@@ -47,7 +51,7 @@ class UploadChatView(FormView):
         self.request.session[SESSION_CHAT_FIELD] = chat_export.name
 
         self.save_chat_export(chat_export)
-
+        logger.info(f"Chat {chat_export.name} uploaded")
         return super().form_valid(form)
 
     @classmethod

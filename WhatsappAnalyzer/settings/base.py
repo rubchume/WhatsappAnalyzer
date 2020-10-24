@@ -124,3 +124,42 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = (
   os.path.join(BASE_DIR, 'static/'),
 )
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'root': {
+        'level': 'WARNING',
+        'handlers': ['general'],
+    },
+    'formatters': {
+        'simple': {
+            'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        }
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'level': 'INFO',
+            'formatter': 'simple',
+            'stream': 'ext://sys.stdout',
+        },
+        'general': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'level': 'INFO',
+            'formatter': 'simple',
+            'filename': 'log/general.log',
+            'maxBytes': 1048576, # 1MB
+            'backupCount': 1,
+            'encoding': 'utf8',
+        },
+    },
+    'loggers': {
+        'general': {
+            'level': 'INFO',
+            'handlers': ['console', 'general'],
+            'propagate': False,
+        },
+    }
+}
