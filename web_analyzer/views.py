@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 from django.shortcuts import redirect
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.views.generic import FormView, TemplateView
 from plotly.offline import plot
 
@@ -69,7 +69,21 @@ class UploadChatView(FormView):
                 os.remove(old_chat_export_file_path)
 
 
-class ChatStatisticsView(TemplateView):
+class RedirectIfChatNameIsMissingOrFileIsNotFoundMixin(object):
+    def dispatch(self, request, *args, **kwargs):
+        chat_export_file_name = self.request.session.get(SESSION_CHAT_FIELD, None)
+        if not chat_export_file_name:
+            return redirect(reverse("home"))
+
+        chat_export_file_path = Path(CHAT_EXPORTS_DIRECTORY).joinpath(chat_export_file_name)
+        if not chat_export_file_path.is_file():
+            del self.request.session[SESSION_CHAT_FIELD]
+            return redirect(reverse("home"))
+
+        return super().dispatch(request, *args, **kwargs)
+
+
+class ChatStatisticsView(RedirectIfChatNameIsMissingOrFileIsNotFoundMixin, TemplateView):
     template_name = "chat_statistics.html"
     extra_context = {"title": "Chat Statistics"}
 

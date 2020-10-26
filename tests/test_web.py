@@ -1,6 +1,8 @@
+from importlib import import_module
 import os
 from pathlib import Path
 
+from django.conf import settings
 from django.core.files import File
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
@@ -9,6 +11,16 @@ from rest_framework import status
 
 
 class WebTests(TestCase):
+    def setUp(self):
+        # https://stackoverflow.com/questions/4453764/how-do-i-modify-the-session-in-the-django-test-framework
+        # http://code.djangoproject.com/ticket/10899
+        settings.SESSION_ENGINE = 'django.contrib.sessions.backends.file'
+        engine = import_module(settings.SESSION_ENGINE)
+        store = engine.SessionStore()
+        store.save()
+        self.session = store
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = store.session_key
+
     @classmethod
     def tearDownClass(cls):
         if Path(os.path.join("data", "MyChat.txt")).is_file():
@@ -106,3 +118,22 @@ class WebTests(TestCase):
             status_code=302,
             target_status_code=200,
         )
+
+    def test_chat_statistics_page_redirects_to_home_page_and_then_to_upload_page_if_chat_export_file_is_missing(self):
+        # Given
+        session = self.session
+        session["chat_file_name"] = "example.txt"
+        session.save()
+        expected_redirections = [(reverse("home"), 302), (reverse('upload_chat'), 302)]
+        # When
+        response = self.client.get("/stats/", follow=True)
+        # Then
+        self.assertEqual(expected_redirections, response.redirect_chain)
+
+    def test_chat_statistics_page_redirects_to_home_page_and_then_to_upload_page_if_chat_file_name_is_missing(self):
+        # Given
+        expected_redirections = [(reverse("home"), 302), (reverse('upload_chat'), 302)]
+        # When
+        response = Client().get("/stats/", follow=True)
+        # Then
+        self.assertEqual(expected_redirections, response.redirect_chain)
