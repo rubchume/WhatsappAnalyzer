@@ -42,6 +42,7 @@ def messages_to_components(chat_messages):
 def clean_chat_components(chat_components):
     chat_components["Time"] = chat_components["Time"].astype("datetime64")
     chat_components["Message"] = chat_components["Message"].str.strip()
+    chat_components = chat_components.loc[chat_components["User"] != "ERROR"]
     return chat_components
 
 
