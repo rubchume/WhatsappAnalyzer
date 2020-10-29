@@ -8,6 +8,7 @@ from django.views.generic import FormView, TemplateView
 from plotly.offline import plot
 
 from src.chat_network import ChatNetwork
+from web_analyzer import dash_apps
 from web_analyzer.forms import UploadChatForm
 
 
@@ -91,13 +92,17 @@ class ChatStatisticsView(RedirectIfChatNameIsMissingOrFileIsNotFoundMixin, Templ
         context = super().get_context_data(**kwargs)
         chat_export_file_name = self.request.session[SESSION_CHAT_FIELD]
         context["chat_file_name"] = chat_export_file_name
-        context["graph"] = self.get_graphs(chat_export_file_name)
         return context
 
+    def get(self, request, *args, **kwargs):
+        chat_export_file_name = self.request.session[SESSION_CHAT_FIELD]
+        self.update_graphs(chat_export_file_name)
+        return super().get(request, *args, **kwargs)
+
     @classmethod
-    def get_graphs(cls, chat_export_file_name):
+    def update_graphs(cls, chat_export_file_name):
         chat_export_path = os.path.join(CHAT_EXPORTS_DIRECTORY, chat_export_file_name)
         chat_network = ChatNetwork(chat_export_path)
         fig = chat_network.draw()
         fig.update_layout(height=800)
-        return plot(fig, output_type='div', include_plotlyjs=False)
+        dash_apps.app.layout = dash_apps.create_app_layout(fig)
