@@ -1,13 +1,17 @@
 from importlib import import_module
 import os
 from pathlib import Path
+from unittest.mock import call, patch
 
 from django.conf import settings
 from django.core.files import File
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from django.urls import reverse
+import plotly.graph_objects as go
 from rest_framework import status
+
+from src.chat_network import ChatNetwork
 
 
 class WebTests(TestCase):
@@ -28,6 +32,12 @@ class WebTests(TestCase):
 
         if Path(os.path.join("data", "MyChat2.txt")).is_file():
             os.remove(os.path.join("data", "MyChat2.txt"))
+
+    def add_data_to_session(self, data):
+        session = self.session
+        session.update(self.client.session)
+        session.update(data)
+        session.save()
 
     def test_upload_view_is_up_and_running(self):
         # When
@@ -137,3 +147,97 @@ class WebTests(TestCase):
         response = Client().get("/stats/", follow=True)
         # Then
         self.assertEqual(expected_redirections, response.redirect_chain)
+
+    @patch.object(
+        ChatNetwork,
+        "draw",
+        return_value=(go.Figure(), "node_traces", "edge_traces"),
+        autospec=True
+    )
+    def test_calculate_traces_if_they_are_not_saved_in_session_and_save_them(self, draw_mock):
+        # Given
+        file1 = File(open('tests/helpers/ChatExample.txt', 'rb'))
+        uploaded_file = SimpleUploadedFile('MyChat.txt', file1.read(), 'text/plain')
+        c = Client()
+        # When
+        c.post("/upload_chat/", {"chat_file": uploaded_file}, follow=True)
+        # Then
+        draw_mock.assert_called_once_with(
+            draw_mock.call_args[0][0], return_traces=True
+        )
+        self.assertEqual("node_traces", c.session["node_traces"])
+        self.assertEqual("edge_traces", c.session["edge_traces"])
+
+    @patch.object(
+        ChatNetwork,
+        "draw",
+        return_value=go.Figure(),
+        autospec=True
+    )
+    def test_use_traces_if_they_are_saved_in_session(self, draw_mock):
+        # Given
+        file1 = File(open('tests/helpers/ChatExample.txt', 'rb'))
+        uploaded_file = SimpleUploadedFile('MyChat.txt', file1.read(), 'text/plain')
+        self.client.post("/upload_chat/", {"chat_file": uploaded_file}, follow=False)
+
+        self.add_data_to_session({
+            "node_traces": "my_node_traces",
+            "edge_traces": "my_edge_traces",
+        })
+        # When
+        self.client.get("/stats/")
+        # Then
+        draw_mock.assert_called_once_with(
+            draw_mock.call_args[0][0], node_traces="my_node_traces", edge_traces="my_edge_traces"
+        )
+
+    @patch.object(
+        ChatNetwork,
+        "draw",
+        side_effect=[(go.Figure(), "node_traces", "edge_traces"), go.Figure()],
+        autospec=True
+    )
+    def test_calculate_traces_and_then_use_them_next_time_you_visit_the_page(self, draw_mock):
+        # Given
+        file1 = File(open('tests/helpers/ChatExample.txt', 'rb'))
+        uploaded_file = SimpleUploadedFile('MyChat.txt', file1.read(), 'text/plain')
+        c = Client()
+        c.post("/upload_chat/", {"chat_file": uploaded_file}, follow=True)
+        # When
+        c.get("/stats/")
+        # Then
+        draw_mock.assert_has_calls([
+            call(draw_mock.call_args_list[0][0][0], return_traces=True),
+            call(draw_mock.call_args_list[1][0][0], node_traces="node_traces", edge_traces="edge_traces")
+        ])
+        self.assertEqual("node_traces", c.session["node_traces"])
+        self.assertEqual("edge_traces", c.session["edge_traces"])
+
+    @patch.object(
+        ChatNetwork,
+        "draw",
+        return_value=(go.Figure(), "node_traces", "edge_traces"),
+        autospec=True
+    )
+    def test_delete_traces_from_session_when_new_chat_is_uploaded(self, draw_mock):
+        # Given
+        self.add_data_to_session({
+            "node_traces": "node_traces",
+            "edge_traces": "edge_traces",
+        })
+
+        file1 = File(open('tests/helpers/ChatExample.txt', 'rb'))
+        uploaded_file = SimpleUploadedFile('MyChat.txt', file1.read(), 'text/plain')
+        file1.close()
+        self.client.post("/upload_chat/", {"chat_file": uploaded_file}, follow=False)
+        # When
+        file1 = File(open('tests/helpers/ChatExample.txt', 'rb'))
+        uploaded_file = SimpleUploadedFile('MyChat.txt', file1.read(), 'text/plain')
+        file1.close()
+        self.client.post("/upload_chat/", {"chat_file": uploaded_file}, follow=True)
+        # Then
+        draw_mock.assert_called_once_with(
+            draw_mock.call_args[0][0], return_traces=True
+        )
+        self.assertEqual("node_traces", self.client.session["node_traces"])
+        self.assertEqual("edge_traces", self.client.session["edge_traces"])
