@@ -17,6 +17,8 @@ logger = logging.getLogger("general")
 
 CHAT_EXPORTS_DIRECTORY = "data"
 SESSION_CHAT_FIELD = "chat_file_name"
+NODE_TRACES_FIELD = "node_traces"
+EDGE_TRACES_FIELD = "edge_traces"
 
 
 class RedirectBasedOnRegisteredSessionMixin(object):
@@ -47,6 +49,7 @@ class UploadChatView(FormView):
 
     def form_valid(self, form):
         self.remove_old_chat_export()
+        self.remove_traces()
 
         chat_export = form.files["chat_file"]
         self.request.session[SESSION_CHAT_FIELD] = chat_export.name
@@ -68,6 +71,10 @@ class UploadChatView(FormView):
             old_chat_export_file_path = Path(os.path.join(CHAT_EXPORTS_DIRECTORY, old_chat_export_file_name))
             if old_chat_export_file_path.is_file():
                 os.remove(old_chat_export_file_path)
+
+    def remove_traces(self):
+        self.request.session[NODE_TRACES_FIELD] = None
+        self.request.session[EDGE_TRACES_FIELD] = None
 
 
 class RedirectIfChatNameIsMissingOrFileIsNotFoundMixin(object):
@@ -95,14 +102,37 @@ class ChatStatisticsView(RedirectIfChatNameIsMissingOrFileIsNotFoundMixin, Templ
         return context
 
     def get(self, request, *args, **kwargs):
-        chat_export_file_name = self.request.session[SESSION_CHAT_FIELD]
-        self.update_graphs(chat_export_file_name)
+        self.update_graphs()
         return super().get(request, *args, **kwargs)
 
-    @classmethod
-    def update_graphs(cls, chat_export_file_name):
-        chat_export_path = os.path.join(CHAT_EXPORTS_DIRECTORY, chat_export_file_name)
-        chat_network = ChatNetwork(chat_export_path)
-        fig = chat_network.draw()
+    def update_graphs(self):
+        def get_chat_export_path():
+            chat_export_file_name = self.request.session[SESSION_CHAT_FIELD]
+            chat_export_path = os.path.join(CHAT_EXPORTS_DIRECTORY, chat_export_file_name)
+            return chat_export_path
+
+        def get_traces():
+            node_traces = self.request.session.get(NODE_TRACES_FIELD, None)
+            edge_traces = self.request.session.get(EDGE_TRACES_FIELD, None)
+            return node_traces, edge_traces
+
+        def traces_available():
+            node_traces, edge_traces = get_traces()
+            return node_traces and edge_traces
+
+        def save_traces_to_session(node_traces, edge_traces):
+            self.request.session[NODE_TRACES_FIELD] = node_traces
+            self.request.session[EDGE_TRACES_FIELD] = edge_traces
+
+        if not traces_available():
+            chat_export_path = get_chat_export_path()
+            chat_network = ChatNetwork(chat_export_path)
+            fig, node_traces, edge_traces = chat_network.draw(return_traces=True)
+            save_traces_to_session(node_traces, edge_traces)
+        else:
+            chat_network = ChatNetwork()
+            node_traces, edge_traces = get_traces()
+            fig = chat_network.draw(node_traces=node_traces, edge_traces=edge_traces)
+
         fig.update_layout(height=800)
         dash_apps.app.layout = dash_apps.create_app_layout(fig)

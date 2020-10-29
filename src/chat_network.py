@@ -1,10 +1,12 @@
 import itertools
+import json
 
 import matplotlib as mpl
 import matplotlib.cm as cm
 import networkx as nx
 import numpy as np
 import pandas as pd
+import plotly
 import plotly.graph_objects as go
 from scipy.optimize import minimize
 from scipy.stats import norm
@@ -19,8 +21,19 @@ class ChatNetwork(object):
     def __init__(self, whatsapp_export_file=None):
         self.chat = whatsapp.read_chat(whatsapp_export_file) if whatsapp_export_file else None
 
-    def draw(self, layout=nx.drawing.circular_layout):
-        node_traces, edge_traces = self.get_traces(layout)
+    def draw(self, layout=nx.drawing.circular_layout, return_traces=False, node_traces=None, edge_traces=None):
+        if not (node_traces and edge_traces):
+            node_traces, edge_traces = self.get_traces(layout)
+        else:
+            node_traces = json.loads(node_traces)
+            edge_traces = json.loads(edge_traces)
+
+        if return_traces:
+            return (
+                go.Figure(data=edge_traces + node_traces, layout=self._graph_layout()),
+                json.dumps(node_traces, cls=plotly.utils.PlotlyJSONEncoder),
+                json.dumps(edge_traces, cls=plotly.utils.PlotlyJSONEncoder),
+            )
 
         return go.Figure(data=edge_traces + node_traces, layout=self._graph_layout())
 
