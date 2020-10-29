@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{%load plotly_dash%}
 
 {% block header_nav %}
 <ul>
@@ -6,12 +7,10 @@
 </ul>
 {% endblock %}
 
-
 {% block content %}
 <h1>Chat Statistics</h1>
 <h2>{{chat_file_name}}</h2>
 
-{% autoescape off %}
-  {{graph}}
-{% endautoescape %}
+{% plotly_app name="NetworkGraph" ratio=1 %}
+
 {% endblock %}

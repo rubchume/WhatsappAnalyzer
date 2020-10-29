@@ -20,6 +20,19 @@ class ChatNetwork(object):
         self.chat = whatsapp.read_chat(whatsapp_export_file) if whatsapp_export_file else None
 
     def draw(self, layout=nx.drawing.circular_layout):
+        node_traces, edge_traces = self.get_traces(layout)
+
+        return go.Figure(data=edge_traces + node_traces, layout=self._graph_layout())
+
+    def get_traces(self, layout=nx.drawing.circular_layout):
+        node_positions, node_sizes, edges = self.get_drawing_parameters(layout)
+
+        node_traces = self.get_node_traces(node_positions, node_sizes)
+        edge_traces = self.get_edge_traces(node_positions, edges)
+
+        return node_traces, edge_traces
+
+    def get_drawing_parameters(self, layout):
         node_positions = self.node_positions(layout)
         edges = self.get_directed_edges(
             count="count", CDF=self.NORMALIZATION_TYPE_CDF, deviations=self.NORMALIZATION_TYPE_DEVIATION
@@ -29,10 +42,7 @@ class ChatNetwork(object):
             for node in node_positions.index
         ], index=node_positions.index)
 
-        node_traces = self.get_node_traces(node_positions, node_sizes)
-        edge_traces = self.get_edge_traces(node_positions, edges)
-
-        return go.Figure(data=edge_traces + node_traces, layout=self._graph_layout())
+        return node_positions, node_sizes, edges
 
     @classmethod
     def _graph_layout(cls):
