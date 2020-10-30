@@ -178,7 +178,7 @@ LOGGING = {
         },
         'general': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'level': 'INFO',
+            'level': 'WARNING',
             'formatter': 'simple',
             'filename': 'log/general.log',
             'maxBytes': 1048576, # 1MB

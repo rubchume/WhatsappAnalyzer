@@ -1,4 +1,3 @@
-import itertools
 import json
 
 import matplotlib as mpl
@@ -21,21 +20,72 @@ class ChatNetwork(object):
     def __init__(self, whatsapp_export_file=None):
         self.chat = whatsapp.read_chat(whatsapp_export_file) if whatsapp_export_file else None
 
-    def draw(self, layout=nx.drawing.circular_layout, return_traces=False, node_traces=None, edge_traces=None):
+    def draw(
+            self,
+            layout=nx.drawing.circular_layout,
+            return_traces=False,
+            node_traces=None,
+            edge_traces=None,
+            selected_nodes=None,
+    ):
         if not (node_traces and edge_traces):
             node_traces, edge_traces = self.get_traces(layout)
         else:
             node_traces = json.loads(node_traces)
             edge_traces = json.loads(edge_traces)
 
+        node_traces_filtered, edge_traces_filtered = self.filter_traces(node_traces, edge_traces, selected_nodes)
+
         if return_traces:
             return (
-                go.Figure(data=edge_traces + node_traces, layout=self._graph_layout()),
+                go.Figure(data=edge_traces_filtered + node_traces_filtered, layout=self._graph_layout()),
                 json.dumps(node_traces, cls=plotly.utils.PlotlyJSONEncoder),
                 json.dumps(edge_traces, cls=plotly.utils.PlotlyJSONEncoder),
             )
 
-        return go.Figure(data=edge_traces + node_traces, layout=self._graph_layout())
+        return go.Figure(data=edge_traces_filtered + node_traces_filtered, layout=self._graph_layout())
+
+    @classmethod
+    def filter_traces(cls, node_traces, edge_traces, selected_nodes=None):
+        def node_belongs_to_selected_nodes(node_key):
+            return node_key in selected_nodes if selected_nodes else False
+
+        def edge_belongs_to_selected_nodes(edge_key):
+            if not selected_nodes:
+                return True
+
+            node1, node2 = edge_key.split(":")
+            if len(selected_nodes) == 1:
+                return (
+                    node1 in selected_nodes
+                    or node2 in selected_nodes
+                )
+
+            return (
+                node1 in selected_nodes
+                and node2 in selected_nodes
+            )
+
+        def adapt_opacity(node, trace):
+            if node_belongs_to_selected_nodes(node):
+                trace["marker"]["opacity"] = 1
+            else:
+                trace["marker"]["opacity"] = 0.25
+
+            return trace
+
+        node_traces_filtered = [
+            adapt_opacity(node, trace) for node, trace in node_traces.items()
+        ]
+
+        edge_traces_filtered = [
+            trace
+            for key, traces in edge_traces.items()
+            for trace in traces
+            if edge_belongs_to_selected_nodes(key)
+        ]
+
+        return node_traces_filtered, edge_traces_filtered
 
     def get_traces(self, layout=nx.drawing.circular_layout):
         node_positions, node_sizes, edges = self.get_drawing_parameters(layout)
@@ -70,7 +120,8 @@ class ChatNetwork(object):
                 scaleratio=1
             ),
             showlegend=True,
-            plot_bgcolor='rgba(128,128,128,1)'
+            plot_bgcolor='rgba(128,128,128,1)',
+            clickmode='event',
         )
         return layout_plotly
 
@@ -88,7 +139,7 @@ class ChatNetwork(object):
         circumference = radius * 2 * np.pi
         arc_longitude = circumference / len(size_magnitude)
         scale_factor = arc_longitude / 2 * np.sqrt(np.pi / size_magnitude_normalized.max())
-        node_traces = [go.Scatter(
+        node_traces = {node: go.Scatter(
             x=(x,),
             y=(y,),
             mode='markers+text',
@@ -104,8 +155,9 @@ class ChatNetwork(object):
             textfont={
                 "color": "white",
                 "family": "Arial, sans-serif"
-            }
-        ) for node, (x, y, num) in pd.concat([node_positions, size_magnitude_normalized], axis="columns").iterrows()]
+            },
+            customdata=[node],
+        ) for node, (x, y, num) in pd.concat([node_positions, size_magnitude_normalized], axis="columns").iterrows()}
         return node_traces
 
     @classmethod
@@ -166,7 +218,8 @@ class ChatNetwork(object):
         united_edges = cls.unite_symmetric_directed_edges(edges)
         edge_node_positions = node_positions_to_edge_node_positions(united_edges)
 
-        edge_traces = [
+        edge_traces = {
+            f"{source}:{target}":
             get_edge_segment_traces(
                 x_source,
                 y_source,
@@ -201,9 +254,12 @@ class ChatNetwork(object):
                 ],
                 axis="columns"
             ).iterrows()
-        ]
+        }
 
-        return list(itertools.chain(*edge_traces))
+        return edge_traces
+
+    def get_nodes(self):
+        return list(self.chat["User"].unique())
 
     def get_directed_graph(self, weight_normalization="no_normalization"):
         directed_edges_weighted = self.get_directed_edges(weight_normalization)
