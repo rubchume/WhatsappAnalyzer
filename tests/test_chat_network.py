@@ -2,6 +2,7 @@ import unittest
 
 import pandas as pd
 from pandas._testing import assert_frame_equal, assert_series_equal
+import plotly.graph_objects as go
 
 from src.chat_network import ChatNetwork
 
@@ -302,3 +303,230 @@ class ChatNetworkTests(unittest.TestCase):
         edges = chat_network.get_directed_edges(weight_normalization=ChatNetwork.NORMALIZATION_TYPE_DEVIATION)
         # Then
         assert_frame_equal(expected_edges, edges)
+
+    def test_get_no_edge_traces_and_just_soft_nodes_when_selected_nodes_are_null(self):
+        # Given
+        node_traces = {
+            "user1": go.Scatter(
+                x=(0,),
+                y=(0,),
+                marker={
+                    "symbol": 'circle',
+                    "opacity": 1,
+                },
+            ),
+            "user2": go.Scatter(
+                x=(2,),
+                y=(2,),
+                marker={
+                    "symbol": 'circle',
+                    "opacity": 1,
+                },
+            ),
+        }
+        expected_filtered_node_traces = [
+            go.Scatter(
+                x=(0,),
+                y=(0,),
+                marker={
+                    "symbol": 'circle',
+                    "opacity": 0.25,
+                },
+            ),
+            go.Scatter(
+                x=(2,),
+                y=(2,),
+                marker={
+                    "symbol": 'circle',
+                    "opacity": 0.25,
+                },
+            ),
+        ]
+
+        edge_traces = {
+            "user1:user2": ["trace1", "trace2"],
+            "user1:user3": ["trace3", "trace4"],
+        }
+
+        # When
+        node_traces, edge_traces = ChatNetwork.filter_traces(node_traces, edge_traces, None)
+        # Then
+        self.assertEqual(expected_filtered_node_traces, node_traces)
+        self.assertEqual(["trace1", "trace2", "trace3", "trace4"], edge_traces)
+
+    def test_get_all_nodes_but_add_transparency_to_the_not_selected(self):
+        # Given
+        node_traces = {
+            "user1": go.Scatter(
+                x=(0,),
+                y=(0,),
+                marker={
+                    "symbol": 'circle',
+                    "opacity": 1,
+                },
+            ),
+            "user2": go.Scatter(
+                x=(2,),
+                y=(2,),
+                marker={
+                    "symbol": 'circle',
+                    "opacity": 1,
+                },
+            ),
+            "user3": go.Scatter(
+                x=(3,),
+                y=(3,),
+                marker={
+                    "symbol": 'circle',
+                    "opacity": 1,
+                },
+            ),
+        }
+
+        expected_filtered_node_traces = [
+            go.Scatter(
+                x=(0,),
+                y=(0,),
+                marker={
+                    "symbol": 'circle',
+                    "opacity": 1,
+                },
+            ),
+            go.Scatter(
+                x=(2,),
+                y=(2,),
+                marker={
+                    "symbol": 'circle',
+                    "opacity": 0.25,
+                },
+            ),
+            go.Scatter(
+                x=(3,),
+                y=(3,),
+                marker={
+                    "symbol": 'circle',
+                    "opacity": 1,
+                },
+            ),
+        ]
+
+        edge_traces = {
+            "does_not_matter:doesnotmatter": ["trace1", "trace2"],
+        }
+        # When
+        node_traces_filtered, _ = ChatNetwork.filter_traces(node_traces, edge_traces, ["user1", "user3"])
+        # Then
+        self.assertEqual(expected_filtered_node_traces, node_traces_filtered)
+
+    def test_get_only_edge_traces_for_selected_nodes(self):
+        # Given
+        node_traces = {
+            "user1": go.Scatter(
+                x=(0,),
+                y=(0,),
+                marker={
+                    "symbol": 'circle',
+                    "opacity": 1,
+                },
+            ),
+        }
+        edge_traces = {
+            "user3:user1": ["trace3", "trace4"],
+            "user1:user4": ["trace1", "trace2"],
+            "user2:user3": ["trace5", "trace6"],
+        }
+        # When
+        _, edge_traces = ChatNetwork.filter_traces(node_traces, edge_traces, ["user1", "user3", "user2"])
+        # Then
+        self.assertEqual(["trace3", "trace4", "trace5", "trace6"], edge_traces)
+
+    def test_get_all_traces_but_just_one_selected_node_when_there_is_only_one_selected_node(self):
+        # Given
+        node_traces = {
+            "user1": go.Scatter(
+                x=(0,),
+                y=(0,),
+                marker={
+                    "symbol": 'circle',
+                    "opacity": 1,
+                },
+            ),
+            "user2": go.Scatter(
+                x=(2,),
+                y=(2,),
+                marker={
+                    "symbol": 'circle',
+                    "opacity": 1,
+                },
+            ),
+            "user3": go.Scatter(
+                x=(3,),
+                y=(3,),
+                marker={
+                    "symbol": 'circle',
+                    "opacity": 1,
+                },
+            ),
+        }
+
+        expected_filtered_node_traces = [
+            go.Scatter(
+                x=(0,),
+                y=(0,),
+                marker={
+                    "symbol": 'circle',
+                    "opacity": 0.25,
+                },
+            ),
+            go.Scatter(
+                x=(2,),
+                y=(2,),
+                marker={
+                    "symbol": 'circle',
+                    "opacity": 1,
+                },
+            ),
+            go.Scatter(
+                x=(3,),
+                y=(3,),
+                marker={
+                    "symbol": 'circle',
+                    "opacity": 0.25,
+                },
+            ),
+        ]
+
+        edge_traces = {
+            "user3:user1": ["trace3", "trace4"],
+            "user1:user2": ["trace1", "trace2"],
+            "user2:user3": ["trace5", "trace6"],
+        }
+
+        # When
+        node_traces_filtered, edge_traces_filtered = ChatNetwork.filter_traces(node_traces, edge_traces, ["user2"])
+        # Then
+        self.assertEqual(expected_filtered_node_traces, node_traces_filtered)
+        self.assertEqual(["trace1", "trace2", "trace5", "trace6"], edge_traces_filtered)
+
+    def test_get_nodes(self):
+        # Given
+        chat = pd.DataFrame(
+            {
+                "Time": pd.to_datetime(
+                    [
+                        "2020-10-05 19:00",
+                        "2020-10-05 19:01",
+                        "2020-10-05 19:02",
+                        "2020-10-05 19:03",
+                        "2020-10-05 19:04",
+                    ]
+                ),
+                "User": ["Valen", "Bowen", "Ale", "Bowen", "Ale"],
+                "Message": ["Hola", "Ciao", "Que mais", "Bien and you?", "Muy bieeen"],
+            },
+        )
+        # When
+        chat_network = ChatNetwork()
+        chat_network.chat = chat
+        # Then
+        self.assertEqual(["Valen", "Bowen", "Ale"], chat_network.get_nodes())

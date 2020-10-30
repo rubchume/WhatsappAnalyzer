@@ -5,7 +5,6 @@ from pathlib import Path
 from django.shortcuts import redirect
 from django.urls import reverse_lazy, reverse
 from django.views.generic import FormView, TemplateView
-from plotly.offline import plot
 
 from src.chat_network import ChatNetwork
 from web_analyzer import dash_apps
@@ -129,6 +128,7 @@ class ChatStatisticsView(RedirectIfChatNameIsMissingOrFileIsNotFoundMixin, Templ
             chat_network = ChatNetwork(chat_export_path)
             fig, node_traces, edge_traces = chat_network.draw(return_traces=True)
             save_traces_to_session(node_traces, edge_traces)
+            self.request.session["selected_nodes"] = []
         else:
             chat_network = ChatNetwork()
             node_traces, edge_traces = get_traces()
