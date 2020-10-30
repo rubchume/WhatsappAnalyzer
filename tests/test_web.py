@@ -148,6 +148,22 @@ class WebTests(TestCase):
         # Then
         self.assertEqual(expected_redirections, response.redirect_chain)
 
+    def test_stats_page_redirects_to_home_and_then_upload_page_and_remove_file_if_error_in_decoding(self):
+        # Given
+        file1 = File(open('tests/helpers/ChatExampleWrong.PNG', 'rb'))
+        uploaded_file = SimpleUploadedFile('MyChat.txt', file1.read(), 'text/plain')
+        expected_redirections = [
+            (reverse("home") + "?error=true", 302),
+            (reverse('upload_chat') + "?error=true", 302)
+        ]
+        self.client.post("/upload_chat/", {"chat_file": uploaded_file})
+        # When
+        response = self.client.get("/stats/", follow=True)
+        # Then
+        self.assertEqual(expected_redirections, response.redirect_chain)
+        self.assertIsNone(self.client.session.get("chat_file_name", None))
+        self.assertContains(response, "Something went wrong. Try again")
+
     @patch.object(
         ChatNetwork,
         "draw",

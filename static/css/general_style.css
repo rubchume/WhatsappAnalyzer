@@ -135,6 +135,10 @@ p {
   color: #1ac995;
 }
 
+.error {
+  color: #fc5e03;
+}
+
 .button {
   background-color: #99ff99;
   border: none;
