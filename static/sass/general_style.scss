@@ -29,6 +29,11 @@ p {
 }
 
 
+.error {
+  color: $text_error_color;
+}
+
+
 .button {
   @include coolButton();
 }

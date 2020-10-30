@@ -4,7 +4,7 @@ from pathlib import Path
 
 from django.shortcuts import redirect
 from django.urls import reverse_lazy, reverse
-from django.views.generic import FormView, TemplateView
+from django.views.generic import FormView, TemplateView, RedirectView
 
 from src.chat_network import ChatNetwork
 from web_analyzer import dash_apps
@@ -20,24 +20,18 @@ NODE_TRACES_FIELD = "node_traces"
 EDGE_TRACES_FIELD = "edge_traces"
 
 
-class RedirectBasedOnRegisteredSessionMixin(object):
-    def dispatch(self, request, *args, **kwargs):
-        if request.session.get(SESSION_CHAT_FIELD, None):
-            return redirect(
-                reverse_lazy(
-                    "chat_statistics",
-                )
-            )
+class HomeView(RedirectView):
+    def get_redirect_url(self, *args, **kwargs):
+        def query_dict_to_string(query_dict):
+            if not query_dict:
+                return ""
+
+            return "?" + "&".join([f"{key}={value}" for key, value in query_dict.items()])
+
+        if self.request.session.get(SESSION_CHAT_FIELD, None):
+            return reverse_lazy("chat_statistics")
         else:
-            return redirect(
-                reverse_lazy(
-                    "upload_chat",
-                )
-            )
-
-
-class HomeView(RedirectBasedOnRegisteredSessionMixin, TemplateView):
-    template_name = "upload_chat.html"
+            return reverse_lazy("upload_chat") + query_dict_to_string(self.request.GET)
 
 
 class UploadChatView(FormView):
@@ -87,7 +81,16 @@ class RedirectIfChatNameIsMissingOrFileIsNotFoundMixin(object):
             del self.request.session[SESSION_CHAT_FIELD]
             return redirect(reverse("home"))
 
-        return super().dispatch(request, *args, **kwargs)
+        try:
+            return super().dispatch(request, *args, **kwargs)
+        except Exception:
+            chat_file_name = self.request.session[SESSION_CHAT_FIELD]
+            chat_export_file_path = Path(CHAT_EXPORTS_DIRECTORY).joinpath(chat_file_name)
+            os.remove(chat_export_file_path)
+
+            del self.request.session[SESSION_CHAT_FIELD]
+
+            return redirect(f"{reverse('home')}?error=true")
 
 
 class ChatStatisticsView(RedirectIfChatNameIsMissingOrFileIsNotFoundMixin, TemplateView):
