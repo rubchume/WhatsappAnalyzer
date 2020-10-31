@@ -7,8 +7,8 @@ MESSAGE_COMPONENTS = ["Time", "User", "Message"]
 HEADER_LINES = 3
 
 
-def read_chat(chat_file_name, collapse=True):
-    chat_lines = raw_chat_to_lines(chat_file_name)
+def read_chat(chat_file_name=None, chat_file=None, collapse=True):
+    chat_lines = raw_chat_to_lines(chat_file_name, chat_file)
     chat_messages = lines_to_messages(chat_lines)
     chat_components = messages_to_components(chat_messages)
     chat = clean_chat_components(chat_components)
@@ -17,9 +17,12 @@ def read_chat(chat_file_name, collapse=True):
     return chat
 
 
-def raw_chat_to_lines(chat_file_name):
-    with open(chat_file_name, "r", encoding="utf8") as f:
-        return pd.Series(f.readlines()[HEADER_LINES:])
+def raw_chat_to_lines(chat_file_name=None, chat_file=None):
+    if chat_file_name:
+        with open(chat_file_name, "r", encoding="utf8") as f:
+            return pd.Series(f.readlines()[HEADER_LINES:])
+
+    return pd.Series(chat_file.readlines()[HEADER_LINES:])
 
 
 def lines_to_messages(chat_lines):

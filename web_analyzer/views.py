@@ -1,3 +1,4 @@
+import io
 import logging
 import os
 from pathlib import Path
@@ -25,7 +26,6 @@ class HomeView(RedirectView):
         def query_dict_to_string(query_dict):
             if not query_dict:
                 return ""
-
             return "?" + "&".join([f"{key}={value}" for key, value in query_dict.items()])
 
         if self.request.session.get(SESSION_CHAT_FIELD, None):
@@ -34,7 +34,16 @@ class HomeView(RedirectView):
             return reverse_lazy("upload_chat") + query_dict_to_string(self.request.GET)
 
 
-class UploadChatView(FormView):
+class RedirectToHomeIfErrorDecodingMixin(object):
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            return super().dispatch(request, *args, **kwargs)
+        except DecodingError:
+            del self.request.session[SESSION_CHAT_FIELD]
+            return redirect(f"{reverse('home')}?decodingerror=true")
+
+
+class UploadChatView(RedirectToHomeIfErrorDecodingMixin, FormView):
     template_name = "upload_chat.html"
     form_class = UploadChatForm
     extra_context = {"title": "Upload Chat Export File"}
@@ -47,7 +56,17 @@ class UploadChatView(FormView):
         chat_export = form.files["chat_file"]
         self.request.session[SESSION_CHAT_FIELD] = chat_export.name
 
-        self.save_chat_export(chat_export)
+        try:
+            chat_text = chat_export.read().decode("utf-8")
+            chat_file_stream = io.StringIO(chat_text)
+            _, node_traces, edge_traces = ChatNetwork(whatsapp_export_file=chat_file_stream).draw(return_traces=True)
+        except Exception:
+            raise DecodingError
+
+        self.request.session[NODE_TRACES_FIELD] = node_traces
+        self.request.session[EDGE_TRACES_FIELD] = edge_traces
+        self.request.session["selected_nodes"] = []
+
         logger.info(f"Chat {chat_export.name} uploaded")
         return super().form_valid(form)
 
@@ -70,30 +89,22 @@ class UploadChatView(FormView):
         self.request.session[EDGE_TRACES_FIELD] = None
 
 
-class RedirectIfChatNameIsMissingOrFileIsNotFoundMixin(object):
+class RedirectIfChatNameOrTracesAreMissingMixin(object):
     def dispatch(self, request, *args, **kwargs):
         chat_export_file_name = self.request.session.get(SESSION_CHAT_FIELD, None)
         if not chat_export_file_name:
             return redirect(reverse("home"))
 
-        chat_export_file_path = Path(CHAT_EXPORTS_DIRECTORY).joinpath(chat_export_file_name)
-        if not chat_export_file_path.is_file():
+        node_traces = self.request.session.get(NODE_TRACES_FIELD, None)
+        edge_traces = self.request.session.get(EDGE_TRACES_FIELD, None)
+        if not (node_traces and edge_traces):
             del self.request.session[SESSION_CHAT_FIELD]
             return redirect(reverse("home"))
 
-        try:
-            return super().dispatch(request, *args, **kwargs)
-        except Exception:
-            chat_file_name = self.request.session[SESSION_CHAT_FIELD]
-            chat_export_file_path = Path(CHAT_EXPORTS_DIRECTORY).joinpath(chat_file_name)
-            os.remove(chat_export_file_path)
-
-            del self.request.session[SESSION_CHAT_FIELD]
-
-            return redirect(f"{reverse('home')}?error=true")
+        return super().dispatch(request, *args, **kwargs)
 
 
-class ChatStatisticsView(RedirectIfChatNameIsMissingOrFileIsNotFoundMixin, TemplateView):
+class ChatStatisticsView(RedirectIfChatNameOrTracesAreMissingMixin, TemplateView):
     template_name = "chat_statistics.html"
     extra_context = {"title": "Chat Statistics"}
 
@@ -108,34 +119,18 @@ class ChatStatisticsView(RedirectIfChatNameIsMissingOrFileIsNotFoundMixin, Templ
         return super().get(request, *args, **kwargs)
 
     def update_graphs(self):
-        def get_chat_export_path():
-            chat_export_file_name = self.request.session[SESSION_CHAT_FIELD]
-            chat_export_path = os.path.join(CHAT_EXPORTS_DIRECTORY, chat_export_file_name)
-            return chat_export_path
-
         def get_traces():
             node_traces = self.request.session.get(NODE_TRACES_FIELD, None)
             edge_traces = self.request.session.get(EDGE_TRACES_FIELD, None)
             return node_traces, edge_traces
 
-        def traces_available():
-            node_traces, edge_traces = get_traces()
-            return node_traces and edge_traces
-
-        def save_traces_to_session(node_traces, edge_traces):
-            self.request.session[NODE_TRACES_FIELD] = node_traces
-            self.request.session[EDGE_TRACES_FIELD] = edge_traces
-
-        if not traces_available():
-            chat_export_path = get_chat_export_path()
-            chat_network = ChatNetwork(chat_export_path)
-            fig, node_traces, edge_traces = chat_network.draw(return_traces=True)
-            save_traces_to_session(node_traces, edge_traces)
-            self.request.session["selected_nodes"] = []
-        else:
-            chat_network = ChatNetwork()
-            node_traces, edge_traces = get_traces()
-            fig = chat_network.draw(node_traces=node_traces, edge_traces=edge_traces)
+        chat_network = ChatNetwork()
+        node_traces, edge_traces = get_traces()
+        fig = chat_network.draw(node_traces=node_traces, edge_traces=edge_traces)
 
         fig.update_layout(height=800)
         dash_apps.app.layout = dash_apps.create_app_layout(fig)
+
+
+class DecodingError(RuntimeError):
+    pass

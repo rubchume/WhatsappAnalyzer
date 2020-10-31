@@ -330,7 +330,7 @@ class ChatNetworkTests(unittest.TestCase):
                 y=(0,),
                 marker={
                     "symbol": 'circle',
-                    "opacity": 0.25,
+                    "opacity": 0.5,
                 },
             ),
             go.Scatter(
@@ -338,7 +338,7 @@ class ChatNetworkTests(unittest.TestCase):
                 y=(2,),
                 marker={
                     "symbol": 'circle',
-                    "opacity": 0.25,
+                    "opacity": 0.5,
                 },
             ),
         ]
@@ -397,7 +397,7 @@ class ChatNetworkTests(unittest.TestCase):
                 y=(2,),
                 marker={
                     "symbol": 'circle',
-                    "opacity": 0.25,
+                    "opacity": 0.5,
                 },
             ),
             go.Scatter(
@@ -475,7 +475,7 @@ class ChatNetworkTests(unittest.TestCase):
                 y=(0,),
                 marker={
                     "symbol": 'circle',
-                    "opacity": 0.25,
+                    "opacity": 0.5,
                 },
             ),
             go.Scatter(
@@ -491,7 +491,7 @@ class ChatNetworkTests(unittest.TestCase):
                 y=(3,),
                 marker={
                     "symbol": 'circle',
-                    "opacity": 0.25,
+                    "opacity": 0.5,
                 },
             ),
         ]

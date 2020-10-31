@@ -17,8 +17,11 @@ class ChatNetwork(object):
     NORMALIZATION_TYPE_DEVIATION = "MLE_multinomial_distribution_difference_in_standard_deviations"
     NORMALIZATION_TYPE_CDF = "MLE_multinomial_distribution_CDF"
 
-    def __init__(self, whatsapp_export_file=None):
-        self.chat = whatsapp.read_chat(whatsapp_export_file) if whatsapp_export_file else None
+    def __init__(self, whatsapp_export_file_name=None, whatsapp_export_file=None):
+        self.chat = (
+            whatsapp.read_chat(whatsapp_export_file_name, whatsapp_export_file)
+            if (whatsapp_export_file_name or whatsapp_export_file) else None
+        )
 
     def draw(
             self,
@@ -70,7 +73,7 @@ class ChatNetwork(object):
             if node_belongs_to_selected_nodes(node):
                 trace["marker"]["opacity"] = 1
             else:
-                trace["marker"]["opacity"] = 0.25
+                trace["marker"]["opacity"] = 0.5
 
             return trace
 
@@ -119,8 +122,8 @@ class ChatNetwork(object):
                 scaleanchor="x",
                 scaleratio=1
             ),
-            showlegend=True,
-            plot_bgcolor='rgba(128,128,128,1)',
+            showlegend=False,
+            plot_bgcolor='rgba(16,16,16,1)',
             clickmode='event',
         )
         return layout_plotly
@@ -148,6 +151,7 @@ class ChatNetwork(object):
                 "symbol": 'circle',
                 "size": np.sqrt(num) * scale_factor * 150,
                 "opacity": 1,
+                # "color": "rgba(119, 153, 51, 1)",
             },
             text=node,
             textposition="middle center",
@@ -191,7 +195,7 @@ class ChatNetwork(object):
             normalizer = mpl.colors.Normalize(vmin=0, vmax=1)
             mappable = mpl.cm.ScalarMappable(norm=normalizer, cmap=cm.bwr)
 
-            num_segments = 40
+            num_segments = 15
 
             x_joints = np.linspace(x_source, x_target, num_segments + 1)
             y_joints = np.linspace(y_source, y_target, num_segments + 1)
