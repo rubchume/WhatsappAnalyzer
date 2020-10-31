@@ -11,7 +11,7 @@ from src.chat_network import ChatNetwork
 def create_app_layout(plotly_figure=None):
     return html.Div(
         [
-            dcc.Graph(id="network-hot-cold", figure=plotly_figure),
+            dcc.Graph(id="network-hot-cold", figure=plotly_figure, config={"displayModeBar": False}),
         ],
         id="network-graph"
     )
