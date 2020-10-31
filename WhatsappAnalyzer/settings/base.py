@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 import os
 from pathlib import Path
 
+from session_cleanup.settings import weekly_schedule
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -41,6 +42,7 @@ INSTALLED_APPS = [
     "django_plotly_dash.apps.DjangoPlotlyDashConfig",
     "web_analyzer",
     "channels",
+    "session_cleanup",
 ]
 
 MIDDLEWARE = [
@@ -193,4 +195,9 @@ LOGGING = {
             'propagate': False,
         },
     }
+}
+
+
+CELERYBEAT_SCHEDULE = {
+    'session_cleanup': weekly_schedule
 }
