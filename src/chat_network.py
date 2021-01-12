@@ -122,7 +122,7 @@ class ChatNetwork(object):
                 scaleanchor="x",
                 scaleratio=1
             ),
-            showlegend=False,
+            showlegend=True,
             plot_bgcolor='rgba(16,16,16,1)',
             clickmode='event',
         )

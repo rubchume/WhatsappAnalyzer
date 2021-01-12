@@ -21,6 +21,8 @@ import nox
 nox.options.sessions = "tests", "lint_CI", "safety"
 lint_locations = "tests", "src",
 
+INSTALL_WITH_CONSTRAINTS = False
+
 
 @nox.session(python="3.7")
 def safety(session):
@@ -35,7 +37,12 @@ def safety(session):
             f"--output={filename}",
             external=True,
         )
-    install_with_constraints(session, "safety")
+
+    if INSTALL_WITH_CONSTRAINTS:
+        install_with_constraints(session, "safety")
+    else:
+        session.install("safety")
+
     session.run("safety", "check", f"--file={filename}", "--full-report")
     os.remove(filename)
 
@@ -43,35 +50,56 @@ def safety(session):
 @nox.session(python=["3.7"])
 def lint(session):
     args = session.posargs or lint_locations
-    install_with_constraints(
-        session,
-        "flake8",
-        "flake8-bandit",
-        "flake8-black",
-        "flake8-bugbear",
-        "flake8-import-order",
-    )
+    if INSTALL_WITH_CONSTRAINTS:
+        install_with_constraints(
+            session,
+            "flake8",
+            "flake8-bandit",
+            "flake8-black",
+            "flake8-bugbear",
+            "flake8-import-order",
+        )
+    else:
+        session.install(
+            "flake8",
+            "flake8-bandit",
+            "flake8-black",
+            "flake8-bugbear",
+            "flake8-import-order",
+        )
     session.run("flake8", *args)
 
 
 @nox.session(python=["3.7"])
 def lint_CI(session):
     args = session.posargs or lint_locations
-    install_with_constraints(
-        session,
-        "flake8",
-        "flake8-bandit",
-        "flake8-black",
-        "flake8-bugbear",
-        "flake8-import-order",
-    )
+    if INSTALL_WITH_CONSTRAINTS:
+        install_with_constraints(
+            session,
+            "flake8",
+            "flake8-bandit",
+            "flake8-black",
+            "flake8-bugbear",
+            "flake8-import-order",
+        )
+    else:
+        session.install(
+            "flake8",
+            "flake8-bandit",
+            "flake8-black",
+            "flake8-bugbear",
+            "flake8-import-order",
+        )
     session.run("flake8", *(args + ("--extend-ignore", "BLK100")))
 
 
 @nox.session(python="3.7")
 def black(session):
     args = session.posargs or lint_locations
-    install_with_constraints(session, "black")
+    if INSTALL_WITH_CONSTRAINTS:
+        install_with_constraints(session, "black")
+    else:
+        session.install("black")
     session.run("black", *args)
 
 
