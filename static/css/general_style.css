@@ -254,3 +254,9 @@ form input[type=submit]:hover {
   background-color: #1ac995;
   color: white;
 }
+
+img {
+  margin-left: auto;
+  margin-right: auto;
+  width: 800px;
+}

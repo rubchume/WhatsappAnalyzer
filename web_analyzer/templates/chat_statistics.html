@@ -11,6 +11,9 @@
 <h1>Chat Statistics</h1>
 <h2>{{chat_file_name}}</h2>
 
+{% load static %}
+<img src="{% static 'web_analyzer/WhatsappGraphExplanation.png' %}" alt="Explanation">
+
 {% plotly_app name="NetworkGraph" ratio=1 %}
 
 {% endblock %}

@@ -7,6 +7,8 @@ DEBUG = False
 
 ALLOWED_HOSTS = ['127.0.0.1', '.herokuapp.com']
 
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '+_*%xqd8^g65xl%*wc6i7*gr#21yjp8rx315q-47tosgu-)xky')
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
