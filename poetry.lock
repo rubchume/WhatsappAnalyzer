@@ -1468,7 +1468,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "plotly"
-version = "4.14.2"
+version = "4.14.3"
 description = "An open-source, interactive data visualization library for Python"
 category = "main"
 optional = false
@@ -2864,8 +2864,8 @@ pillow = [
     {file = "Pillow-8.1.0.tar.gz", hash = "sha256:887668e792b7edbfb1d3c9d8b5d8c859269a0f0eba4dda562adb95500f60dbba"},
 ]
 plotly = [
-    {file = "plotly-4.14.2-py2.py3-none-any.whl", hash = "sha256:955b58509200240b8a97c59194b0a7460cab5b4aa74ef255af60e6d904dda48e"},
-    {file = "plotly-4.14.2.tar.gz", hash = "sha256:7eeac0fcd40b0556e04c3ed331d1b56ba6bd2bec4ebef7dee13e2ae6126a3f4e"},
+    {file = "plotly-4.14.3-py2.py3-none-any.whl", hash = "sha256:d68fc15fcb49f88db27ab3e0c87110943e65fee02a47f33a8590f541b3042461"},
+    {file = "plotly-4.14.3.tar.gz", hash = "sha256:7d8aaeed392e82fb8e0e48899f2d3d957b12327f9d38cdd5802bc574a8a39d91"},
 ]
 pluggy = [
     {file = "pluggy-0.13.1-py2.py3-none-any.whl", hash = "sha256:966c145cd83c96502c3c3868f50408687b38434af77734af1e9ca461a4081d2d"},
