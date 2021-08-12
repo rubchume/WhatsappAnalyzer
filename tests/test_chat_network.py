@@ -190,7 +190,7 @@ class ChatNetworkTests(unittest.TestCase):
 
     def test_draw_network_does_not_fail(self):
         # Given
-        chat_file = "data/ChatMena.txt"
+        chat_file = "tests/helpers/ChatExample.txt"
         network_chat = ChatNetwork(chat_file)
         # When
         network_chat.draw()
