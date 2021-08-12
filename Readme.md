@@ -22,7 +22,7 @@ If it is lower, it will be blue (the relationship is _cold_).
 You can click on the circles to show them or disable them.
 
 The next is an example with anonymous users:
-![Example with anonymous users](sample_data/PutassosGráfico.PNG)
+![Example with anonymous users](sample_data/PutassosGráfico.png)
 
 The Whatsapp chat export file is deleted after it is processed, i.e. it is not stored.
 
