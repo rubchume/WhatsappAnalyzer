@@ -19,6 +19,16 @@ The analysis step models each chat as a Markov probabilistic process and uses li
 
 The deployment has been done in Heroku.
 
+# Conclusions
+
+The main lessons learned during the development of this app are:
+- Use loosely coupled architecture to be able to deploy the app in different platforms seamlessly. Fortunately Heroku makes this very easy.
+- Plotly and Dash still needs to mature in order to fully support this type of enhanced graph visualizations. However they did a very good job.
+
+Regarding the lessons learned during analysis, it depends on the specific Whatsapp group. On the personal side I found very interesting how the sympathies one notices intuitively are very clear once you run the analysis. Numbers do not lie.
+
+As a future path of improvement, I would suggest to investigate further the use of Dash with many simultaneous users.
+
 # How to use
 
 The first step is to upload a Whatsapp chat export file of a group chat ([video tutorial](https://www.youtube.com/watch?v=-Ald352nhao)).
